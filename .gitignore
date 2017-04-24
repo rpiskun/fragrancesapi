@@ -1,1 +1,5 @@
 *.exe
+*.env
+*.bak
+*.svg
+client_secret.json

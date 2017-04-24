@@ -5,6 +5,7 @@ import (
 	_ "gopkg.in/gorp.v1"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 )
 
@@ -15,6 +16,12 @@ func main() {
 	defer dbmap.Db.Close()
 	api := NewRouter()
 	bind := fmt.Sprintf("%s:%s", apiHost, apiPort)
+
+	go func() {
+		// for pprof
+		log.Println(http.ListenAndServe(":6060", nil))
+	}()
+
 	log.Println("Server started at:", bind)
 	err = http.ListenAndServe(bind, api)
 	if err != nil {

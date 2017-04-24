@@ -23,7 +23,7 @@ var (
 )
 
 type NullInt64 struct {
-	Int64 int64 `json:"int64"`
+	Int64 int64 `json:"value"`
 	Valid bool  `json:"valid"`
 }
 
@@ -124,33 +124,35 @@ func (params *BaseParams) Parse(r *http.Request) *BaseParams {
 }
 
 type SearchParams struct {
-	Base         BaseParams
-	InfoUid      NullSliceString
-	Name         NullSliceString
-	YearFrom     NullSliceInt64
-	YearTo       NullSliceInt64
-	DescUid      NullSliceString
-	Desc         NullSliceString
-	BrandUid     NullSliceString
-	Brand        NullSliceString
-	GenderUid    NullSliceString
-	Gender       NullSliceString
-	GroupUid     NullSliceString
-	Group        NullSliceString
-	CountryUid   NullSliceString
-	Country      NullSliceString
-	SeasonUid    NullSliceString
-	Season       NullSliceString
-	TsodUid      NullSliceString
-	Tsod         NullSliceString
-	TypeUid      NullSliceString
-	Type         NullSliceString
-	PerfumUid    NullSliceString
-	NoteUid      NullSliceString
-	Note         NullSliceString
-	ComponentUid NullSliceString
-	Component    NullSliceString
-	Total        int64
+	Base          BaseParams
+	InfoUid       NullSliceString
+	Name          NullSliceString
+	YearFrom      NullSliceInt64
+	YearTo        NullSliceInt64
+	DescUid       NullSliceString
+	Desc          NullSliceString
+	BrandUid      NullSliceString
+	Brand         NullSliceString
+	GenderUid     NullSliceString
+	Gender        NullSliceString
+	GroupUid      NullSliceString
+	Group         NullSliceString
+	CountryUid    NullSliceString
+	Country       NullSliceString
+	SeasonUid     NullSliceString
+	Season        NullSliceString
+	TsodUid       NullSliceString
+	Tsod          NullSliceString
+	TypeUid       NullSliceString
+	Type          NullSliceString
+	PerfumUid     NullSliceString
+	NoteUid       NullSliceString
+	Note          NullSliceString
+	ComponentUid  NullSliceString
+	Component     NullSliceString
+	CompareMode   NullString
+	CaseSensitive NullString
+	Total         int64
 }
 
 func NewSearchParams() *SearchParams {
@@ -186,6 +188,15 @@ func (sp *SearchParams) Parse(r *http.Request) *SearchParams {
 	sp.Note.append(query.Get("note"))
 	sp.ComponentUid.append(query.Get("component_id"))
 	sp.Component.append(query.Get("component"))
+
+	//cm - compare mode. can take values: st - strict; bw - begin with; ew - end with
+	if sp.CompareMode.String = query.Get("cm"); sp.CompareMode.String != "" {
+		sp.CompareMode.Valid = true
+	}
+	//Case sensative in search query. Values: y - yes; n - no
+	if sp.CaseSensitive.String = query.Get("cs"); sp.CaseSensitive.String != "" {
+		sp.CaseSensitive.Valid = true
+	}
 
 	return sp
 }

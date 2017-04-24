@@ -1,12 +1,15 @@
 package main
 
 import (
-	"encoding/json"
+	// "encoding/json"
 	"errors"
+	// "fmt"
+
 	"github.com/gorilla/context"
 	"github.com/unrolled/render"
-	"io"
-	"io/ioutil"
+	// "io"
+	// "io/ioutil"
+
 	"net/http"
 	"strings"
 	"time"
@@ -16,80 +19,43 @@ import (
 func getAccessToken(r *http.Request) (string, error) {
 	tok := r.Header.Get("Authorization")
 	if !strings.HasPrefix(strings.ToLower(tok), "bearer ") {
-		return "", errors.New("Get access token")
+		return "", errors.New("Token type is not Bearer")
 	}
 	return tok[7:], nil
 }
 
-// ValidateTokenByGoogle ...
-func ValidateTokenByGoogle(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+// ValidateAccessToken ...
+func ValidateAccessToken(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	jsonRender := render.New()
 	tok, err := getAccessToken(r)
 	if err != nil {
-		jsonRender.JSON(w, http.StatusBadRequest, map[string]string{"status": "bad request"})
-		return
-	}
-
-	validateUrl := "https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=" + tok
-	req, err := http.NewRequest("GET", validateUrl, nil)
-	if err != nil {
-		jsonRender.JSON(w, http.StatusInternalServerError, map[string]string{"status": "internal server error"})
-		return
-	}
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		jsonRender.JSON(w, http.StatusInternalServerError, map[string]string{"status": "internal server error"})
-		return
-	} else if resp.StatusCode != http.StatusOK {
+		TracePrintError(err)
 		jsonRender.JSON(w, http.StatusUnauthorized, map[string]string{"status": "unauthorized"})
 		return
 	}
 
-	body, err := ioutil.ReadAll(io.LimitReader(resp.Body, 1048576))
+	accessTokenClaims, err := CheckAccessToken(tok)
 	if err != nil {
-		jsonRender.JSON(w, http.StatusInternalServerError, map[string]string{"status": "internal server error"})
-		return
-	}
-
-	if err := resp.Body.Close(); err != nil {
-		jsonRender.JSON(w, http.StatusInternalServerError, map[string]string{"status": "internal server error"})
-		return
-	}
-
-	if resp.StatusCode != http.StatusOK {
+		TracePrintError(err)
 		jsonRender.JSON(w, http.StatusUnauthorized, map[string]string{"status": "unauthorized"})
 		return
 	}
-	var validTokenData ValidatedTokenData
-	if err := json.Unmarshal(body, &validTokenData); err != nil {
-		jsonRender.JSON(w, http.StatusInternalServerError, map[string]string{"status": "internal server error"})
-		return
-	}
-	context.Set(r, "accessToken", tok)
-	context.Set(r, "validatedUserId", validTokenData.Sub)
-	context.Set(r, "expiresOn", validTokenData.Exp)
-	next(w, r)
-}
 
-// ValidateTokenByDatabase ...
-func ValidateTokenByDatabase(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	jsonRender := render.New()
-	tok, err := getAccessToken(r)
-	if err != nil {
-		jsonRender.JSON(w, http.StatusBadRequest, map[string]string{"status": "bad request"})
-		return
-	}
 	user, err := GetUserByAccessToken(tok)
 	if err != nil {
 		jsonRender.JSON(w, http.StatusUnauthorized, map[string]string{"status": "unauthorized"})
 		return
 	}
-	if user.ExpiresOn < time.Now().Unix() {
+
+	if user.ExpiresAt < time.Now().Unix() {
 		jsonRender.JSON(w, http.StatusUnauthorized, map[string]string{"status": "unauthorized"})
 		return
 	}
+
+	// fmt.Println("Access token:", tok)
+	// fmt.Println("URL:", r.URL.RequestURI())
+
 	context.Set(r, "user", user)
+	context.Set(r, "token", accessTokenClaims)
 	next(w, r)
 }

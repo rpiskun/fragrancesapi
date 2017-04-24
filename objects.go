@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/unrolled/render"
-	"golang.org/x/oauth2"
+	"fmt"
 	"net/http"
 	"sort"
 )
@@ -98,6 +98,10 @@ func (obj *PerfumsInfoV1) MakeObj(pParams interface{}) (Objecter, error) {
 		return nil, err
 	}
 
+	fmt.Println("================================= Query begin =======================================")
+	fmt.Println(query.String())
+	fmt.Println("================================= Query end =========================================")
+
 	if _, err = dbmap.Select(&obj.ObjList, query.String()); err != nil {
 		return nil, err
 	}
@@ -109,15 +113,15 @@ func (obj *PerfumsInfoV1) MakeObj(pParams interface{}) (Objecter, error) {
 	for i := 0; i < len(obj.ObjList); i++ {
 		obj.ObjList[i].Links = []LinkV1{
 			LinkV1{
-				Href:   baseUrl + "/perfums/" + obj.ObjList[i].Uuid,
+				Href:   baseUrl + "/perfum/" + obj.ObjList[i].Uuid,
 				Rel:    "PerfumInfo",
 				Method: "GET",
 			},
 		}
 
 		if obj.ObjList[i].ImgUuid.Valid {
-			obj.ObjList[i].SmallImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImgUuid.String + "/small"
-			obj.ObjList[i].LargeImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImgUuid.String + "/large"
+			obj.ObjList[i].SmallImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImgUuid.String + "/small"
+			obj.ObjList[i].LargeImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImgUuid.String + "/large"
 		}
 	}
 
@@ -241,12 +245,12 @@ func (note *NoteItemV1) AddComponentItem(componentToAdd *ComponentItemV1) *NoteI
 
 	componentToAdd.Links = append(componentToAdd.Links,
 		LinkV1{
-			Href:   baseUrl + "/components/" + componentToAdd.Id,
+			Href:   baseUrl + "/component/" + componentToAdd.Id,
 			Rel:    "ComponentInfo",
 			Method: "GET",
 		},
 		LinkV1{
-			Href:   baseUrl + "/components/" + componentToAdd.Id + "/perfums",
+			Href:   baseUrl + "/component/" + componentToAdd.Id + "/perfums",
 			Rel:    "ComponentPerfums",
 			Method: "GET",
 		})
@@ -282,12 +286,12 @@ func (obj *PerfumCompositionV1) AddNoteItem(noteToAdd *NoteItemV1) *PerfumCompos
 
 	noteToAdd.Links = append(noteToAdd.Links,
 		LinkV1{
-			Href:   baseUrl + "/notes/" + noteToAdd.Id,
+			Href:   baseUrl + "/note/" + noteToAdd.Id,
 			Rel:    "NoteInfo",
 			Method: "GET",
 		},
 		LinkV1{
-			Href:   baseUrl + "/notes/" + noteToAdd.Id + "/perfums",
+			Href:   baseUrl + "/note/" + noteToAdd.Id + "/perfums",
 			Rel:    "NotePerfums",
 			Method: "GET",
 		})
@@ -305,22 +309,22 @@ func (obj *PerfumCompositionV1) AddPerfumInfoItem(info *PerfumInfoV1) *PerfumCom
 	obj.PerfumInfoV1 = *info
 	obj.PerfumInfoV1.Links = []LinkV1{
 		LinkV1{
-			Href:   baseUrl + "/brands/" + info.BrandUuid,
+			Href:   baseUrl + "/brand/" + info.BrandUuid,
 			Rel:    "BrandInfo",
 			Method: "GET",
 		},
 		LinkV1{
-			Href:   baseUrl + "/brands/" + info.BrandUuid + "/perfums",
+			Href:   baseUrl + "/brand/" + info.BrandUuid + "/perfums",
 			Rel:    "BrandPerfums",
 			Method: "GET",
 		},
 		LinkV1{
-			Href:   baseUrl + "/countries/" + info.CountryUuid,
+			Href:   baseUrl + "/country/" + info.CountryUuid,
 			Rel:    "CountryInfo",
 			Method: "GET",
 		},
 		LinkV1{
-			Href:   baseUrl + "/countries/" + info.CountryUuid + "/perfums",
+			Href:   baseUrl + "/country/" + info.CountryUuid + "/perfums",
 			Rel:    "CountryPerfums",
 			Method: "GET",
 		},
@@ -335,22 +339,22 @@ func (obj *PerfumCompositionV1) AddPerfumInfoItem(info *PerfumInfoV1) *PerfumCom
 			Method: "GET",
 		},
 		LinkV1{
-			Href:   baseUrl + "/groups/" + info.GroupUuid,
+			Href:   baseUrl + "/group/" + info.GroupUuid,
 			Rel:    "GroupInfo",
 			Method: "GET",
 		},
 		LinkV1{
-			Href:   baseUrl + "/groups/" + info.GroupUuid + "/perfums",
+			Href:   baseUrl + "/group/" + info.GroupUuid + "/perfums",
 			Rel:    "GroupPerfums",
 			Method: "GET",
 		},
 		LinkV1{
-			Href:   baseUrl + "/seasons/" + info.SeasonUuid,
+			Href:   baseUrl + "/season/" + info.SeasonUuid,
 			Rel:    "SeasonInfo",
 			Method: "GET",
 		},
 		LinkV1{
-			Href:   baseUrl + "/seasons/" + info.SeasonUuid + "/perfums",
+			Href:   baseUrl + "/season/" + info.SeasonUuid + "/perfums",
 			Rel:    "SeasonPerfums",
 			Method: "GET",
 		},
@@ -365,25 +369,25 @@ func (obj *PerfumCompositionV1) AddPerfumInfoItem(info *PerfumInfoV1) *PerfumCom
 			Method: "GET",
 		},
 		LinkV1{
-			Href:   baseUrl + "/types/" + info.TypeUuid,
+			Href:   baseUrl + "/type/" + info.TypeUuid,
 			Rel:    "TypeInfo",
 			Method: "GET",
 		},
 		LinkV1{
-			Href:   baseUrl + "/types/" + info.TypeUuid + "/perfums",
+			Href:   baseUrl + "/type/" + info.TypeUuid + "/perfums",
 			Rel:    "TypePerfums",
 			Method: "GET",
 		},
 		LinkV1{
-			Href:   baseUrl + "/perfums/" + info.Uuid,
+			Href:   baseUrl + "/perfum/" + info.Uuid,
 			Rel:    "PerfumInfo",
 			Method: "GET",
 		},
 	}
 
 	if info.ImgUuid.Valid {
-		obj.SmallImgUrl = baseUrl + "/images/" + info.ImgUuid.String + "/small"
-		obj.LargeImgUrl = baseUrl + "/images/" + info.ImgUuid.String + "/large"
+		obj.SmallImgUrl = baseUrl + "/image/" + info.ImgUuid.String + "/small"
+		obj.LargeImgUrl = baseUrl + "/image/" + info.ImgUuid.String + "/large"
 	}
 
 	return obj
@@ -587,7 +591,7 @@ type BrandV1 struct {
 	Uuid         string         `db:"brand_uuid" json:"id"`
 	Name         string         `db:"name" json:"name"`
 	ImageId      sql.NullString `db:"img_uuid" json:"-"`
-	PerfumsCount NullInt64      `db:"-" json:"perfums_count"`
+	PerfumsCount int64          `db:"-" json:"perfums_count"`
 	Links        []LinkV1       `db:"-" json:"links"`
 	SmallImgUrl  string         `db:"-" json:"small_img_url"`
 	LargeImgUrl  string         `db:"-" json:"large_img_url"`
@@ -639,23 +643,25 @@ func (obj *BrandsV1) MakeObj(pParams interface{}) (Objecter, error) {
 	obj.Amount = int64(len(obj.ObjList))
 
 	for i := 0; i < len(obj.ObjList); i++ {
-		obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		// obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		perfumsCount, _ := GetPerfumsCount("brands", obj.ObjList[i].Uuid)
+		obj.ObjList[i].PerfumsCount = perfumsCount
 		obj.ObjList[i].Links = []LinkV1{
 			LinkV1{
-				Href:   baseUrl + "/brands/" + obj.ObjList[i].Uuid,
+				Href:   baseUrl + "/brand/" + obj.ObjList[i].Uuid,
 				Rel:    "BrandInfo",
 				Method: "GET",
 			},
 			LinkV1{
-				Href:   baseUrl + "/brands/" + obj.ObjList[i].Uuid + "/perfums",
+				Href:   baseUrl + "/brand/" + obj.ObjList[i].Uuid + "/perfums",
 				Rel:    "BrandPerfums",
 				Method: "GET",
 			},
 		}
 
 		if obj.ObjList[i].ImageId.Valid {
-			obj.ObjList[i].SmallImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/small"
-			obj.ObjList[i].LargeImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/large"
+			obj.ObjList[i].SmallImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/small"
+			obj.ObjList[i].LargeImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/large"
 		}
 	}
 
@@ -752,7 +758,7 @@ type ComponentV1 struct {
 	Uuid         string         `db:"component_uuid" json:"id"`
 	Name         string         `db:"name" json:"name"`
 	ImageId      sql.NullString `db:"img_uuid" json:"-"`
-	PerfumsCount NullInt64      `db:"-" json:"perfums_count"`
+	PerfumsCount int64          `db:"-" json:"perfums_count"`
 	Links        []LinkV1       `db:"-" json:"links"`
 	SmallImgUrl  string         `db:"-" json:"small_img_url"`
 	LargeImgUrl  string         `db:"-" json:"large_img_url"`
@@ -804,23 +810,25 @@ func (obj *ComponentsV1) MakeObj(pParams interface{}) (Objecter, error) {
 	obj.Amount = int64(len(obj.ObjList))
 
 	for i := 0; i < len(obj.ObjList); i++ {
-		obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		// obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		perfumsCount, _ := GetPerfumsCount("components", obj.ObjList[i].Uuid)
+		obj.ObjList[i].PerfumsCount = perfumsCount
 		obj.ObjList[i].Links = []LinkV1{
 			LinkV1{
-				Href:   baseUrl + "/components/" + obj.ObjList[i].Uuid,
+				Href:   baseUrl + "/component/" + obj.ObjList[i].Uuid,
 				Rel:    "ComponentInfo",
 				Method: "GET",
 			},
 			LinkV1{
-				Href:   baseUrl + "/components/" + obj.ObjList[i].Uuid + "/perfums",
+				Href:   baseUrl + "/component/" + obj.ObjList[i].Uuid + "/perfums",
 				Rel:    "ComponentPerfums",
 				Method: "GET",
 			},
 		}
 
 		if obj.ObjList[i].ImageId.Valid {
-			obj.ObjList[i].SmallImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/small"
-			obj.ObjList[i].LargeImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/large"
+			obj.ObjList[i].SmallImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/small"
+			obj.ObjList[i].LargeImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/large"
 		}
 	}
 
@@ -910,7 +918,7 @@ type CountryV1 struct {
 	Uuid         string         `db:"country_uuid" json:"id"`
 	Name         string         `db:"name" json:"name"`
 	ImageId      sql.NullString `db:"img_uuid" json:"-"`
-	PerfumsCount NullInt64      `db:"-" json:"perfums_count"`
+	PerfumsCount int64          `db:"-" json:"perfums_count"`
 	Links        []LinkV1       `db:"-" json:"links"`
 	SmallImgUrl  string         `db:"-" json:"small_img_url"`
 	LargeImgUrl  string         `db:"-" json:"large_img_url"`
@@ -962,23 +970,25 @@ func (obj *CountriesV1) MakeObj(pParams interface{}) (Objecter, error) {
 	obj.Amount = int64(len(obj.ObjList))
 
 	for i := 0; i < len(obj.ObjList); i++ {
-		obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		// obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		perfumsCount, _ := GetPerfumsCount("countries", obj.ObjList[i].Uuid)
+		obj.ObjList[i].PerfumsCount = perfumsCount
 		obj.ObjList[i].Links = []LinkV1{
 			LinkV1{
-				Href:   baseUrl + "/countries/" + obj.ObjList[i].Uuid,
+				Href:   baseUrl + "/country/" + obj.ObjList[i].Uuid,
 				Rel:    "CountryInfo",
 				Method: "GET",
 			},
 			LinkV1{
-				Href:   baseUrl + "/countries/" + obj.ObjList[i].Uuid + "/perfums",
+				Href:   baseUrl + "/country/" + obj.ObjList[i].Uuid + "/perfums",
 				Rel:    "CountryPerfums",
 				Method: "GET",
 			},
 		}
 
 		if obj.ObjList[i].ImageId.Valid {
-			obj.ObjList[i].SmallImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/small"
-			obj.ObjList[i].LargeImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/large"
+			obj.ObjList[i].SmallImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/small"
+			obj.ObjList[i].LargeImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/large"
 		}
 	}
 
@@ -1074,7 +1084,7 @@ type GenderV1 struct {
 	Uuid         string         `db:"gender_uuid" json:"id"`
 	Name         string         `db:"name" json:"name"`
 	ImageId      sql.NullString `db:"img_uuid" json:"-"`
-	PerfumsCount NullInt64      `db:"-" json:"perfums_count"`
+	PerfumsCount int64          `db:"-" json:"perfums_count"`
 	Links        []LinkV1       `db:"-" json:"links"`
 	SmallImgUrl  string         `db:"-" json:"small_img_url"`
 	LargeImgUrl  string         `db:"-" json:"large_img_url"`
@@ -1126,7 +1136,9 @@ func (obj *GendersV1) MakeObj(pParams interface{}) (Objecter, error) {
 	obj.Amount = int64(len(obj.ObjList))
 
 	for i := 0; i < len(obj.ObjList); i++ {
-		obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		// obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		perfumsCount, _ := GetPerfumsCount("genders", obj.ObjList[i].Uuid)
+		obj.ObjList[i].PerfumsCount = perfumsCount
 		obj.ObjList[i].Links = []LinkV1{
 			LinkV1{
 				Href:   baseUrl + "/gender/" + obj.ObjList[i].Uuid,
@@ -1141,8 +1153,8 @@ func (obj *GendersV1) MakeObj(pParams interface{}) (Objecter, error) {
 		}
 
 		if obj.ObjList[i].ImageId.Valid {
-			obj.ObjList[i].SmallImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/small"
-			obj.ObjList[i].LargeImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/large"
+			obj.ObjList[i].SmallImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/small"
+			obj.ObjList[i].LargeImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/large"
 		}
 	}
 
@@ -1238,7 +1250,7 @@ type GroupV1 struct {
 	Uuid         string         `db:"group_uuid" json:"id"`
 	Name         string         `db:"name" json:"name"`
 	ImageId      sql.NullString `db:"img_uuid" json:"-"`
-	PerfumsCount NullInt64      `db:"-" json:"perfums_count"`
+	PerfumsCount int64          `db:"-" json:"perfums_count"`
 	Links        []LinkV1       `db:"-" json:"links"`
 	SmallImgUrl  string         `db:"-" json:"small_img_url"`
 	LargeImgUrl  string         `db:"-" json:"large_img_url"`
@@ -1290,23 +1302,25 @@ func (obj *GroupsV1) MakeObj(pParams interface{}) (Objecter, error) {
 	obj.Amount = int64(len(obj.ObjList))
 
 	for i := 0; i < len(obj.ObjList); i++ {
-		obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		// obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		perfumsCount, _ := GetPerfumsCount("groups", obj.ObjList[i].Uuid)
+		obj.ObjList[i].PerfumsCount = perfumsCount
 		obj.ObjList[i].Links = []LinkV1{
 			LinkV1{
-				Href:   baseUrl + "/groups/" + obj.ObjList[i].Uuid,
+				Href:   baseUrl + "/group/" + obj.ObjList[i].Uuid,
 				Rel:    "GroupInfo",
 				Method: "GET",
 			},
 			LinkV1{
-				Href:   baseUrl + "/groups/" + obj.ObjList[i].Uuid + "/perfums",
+				Href:   baseUrl + "/group/" + obj.ObjList[i].Uuid + "/perfums",
 				Rel:    "GroupPerfums",
 				Method: "GET",
 			},
 		}
 
 		if obj.ObjList[i].ImageId.Valid {
-			obj.ObjList[i].SmallImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/small"
-			obj.ObjList[i].LargeImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/large"
+			obj.ObjList[i].SmallImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/small"
+			obj.ObjList[i].LargeImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/large"
 		}
 	}
 
@@ -1402,7 +1416,7 @@ type NoteV1 struct {
 	Uuid         string         `db:"note_uuid" json:"id"`
 	Name         string         `db:"name" json:"name"`
 	ImageId      sql.NullString `db:"img_uuid" json:"-"`
-	PerfumsCount NullInt64      `db:"-" json:"perfums_count"`
+	PerfumsCount int64          `db:"-" json:"perfums_count"`
 	Links        []LinkV1       `db:"-" json:"links"`
 	SmallImgUrl  string         `db:"-" json:"small_img_url"`
 	LargeImgUrl  string         `db:"-" json:"large_img_url"`
@@ -1453,23 +1467,25 @@ func (obj *NotesV1) MakeObj(pParams interface{}) (Objecter, error) {
 	obj.Amount = int64(len(obj.ObjList))
 
 	for i := 0; i < len(obj.ObjList); i++ {
-		obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		// obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		perfumsCount, _ := GetPerfumsCount("notes", obj.ObjList[i].Uuid)
+		obj.ObjList[i].PerfumsCount = perfumsCount
 		obj.ObjList[i].Links = []LinkV1{
 			LinkV1{
-				Href:   baseUrl + "/notes/" + obj.ObjList[i].Uuid,
+				Href:   baseUrl + "/note/" + obj.ObjList[i].Uuid,
 				Rel:    "NoteInfo",
 				Method: "GET",
 			},
 			LinkV1{
-				Href:   baseUrl + "/notes/" + obj.ObjList[i].Uuid + "/perfums",
+				Href:   baseUrl + "/note/" + obj.ObjList[i].Uuid + "/perfums",
 				Rel:    "NotePerfums",
 				Method: "GET",
 			},
 		}
 
 		if obj.ObjList[i].ImageId.Valid {
-			obj.ObjList[i].SmallImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/small"
-			obj.ObjList[i].LargeImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/large"
+			obj.ObjList[i].SmallImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/small"
+			obj.ObjList[i].LargeImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/large"
 		}
 	}
 
@@ -1564,7 +1580,7 @@ type SeasonV1 struct {
 	Uuid         string         `db:"season_uuid" json:"id"`
 	Name         string         `db:"name" json:"name"`
 	ImageId      sql.NullString `db:"img_uuid" json:"-"`
-	PerfumsCount NullInt64      `db:"-" json:"perfums_count"`
+	PerfumsCount int64          `db:"-" json:"perfums_count"`
 	Links        []LinkV1       `db:"-" json:"links"`
 	SmallImgUrl  string         `db:"-" json:"small_img_url"`
 	LargeImgUrl  string         `db:"-" json:"large_img_url"`
@@ -1615,23 +1631,25 @@ func (obj *SeasonsV1) MakeObj(pParams interface{}) (Objecter, error) {
 	obj.Amount = int64(len(obj.ObjList))
 
 	for i := 0; i < len(obj.ObjList); i++ {
-		obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		// obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		perfumsCount, _ := GetPerfumsCount("seasons", obj.ObjList[i].Uuid)
+		obj.ObjList[i].PerfumsCount = perfumsCount
 		obj.ObjList[i].Links = []LinkV1{
 			LinkV1{
-				Href:   baseUrl + "/seasons/" + obj.ObjList[i].Uuid,
+				Href:   baseUrl + "/season/" + obj.ObjList[i].Uuid,
 				Rel:    "SeasonInfo",
 				Method: "GET",
 			},
 			LinkV1{
-				Href:   baseUrl + "/seasons/" + obj.ObjList[i].Uuid + "/perfums",
+				Href:   baseUrl + "/season/" + obj.ObjList[i].Uuid + "/perfums",
 				Rel:    "SeasonPerfums",
 				Method: "GET",
 			},
 		}
 
 		if obj.ObjList[i].ImageId.Valid {
-			obj.ObjList[i].SmallImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/small"
-			obj.ObjList[i].LargeImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/large"
+			obj.ObjList[i].SmallImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/small"
+			obj.ObjList[i].LargeImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/large"
 		}
 	}
 
@@ -1727,7 +1745,7 @@ type TimeOfDayV1 struct {
 	Uuid         string         `db:"tsod_uuid" json:"id"`
 	Name         string         `db:"name" json:"name"`
 	ImageId      sql.NullString `db:"img_uuid" json:"-"`
-	PerfumsCount NullInt64      `db:"-" json:"perfums_count"`
+	PerfumsCount int64          `db:"-" json:"perfums_count"`
 	Links        []LinkV1       `db:"-" json:"links"`
 	SmallImgUrl  string         `db:"-" json:"small_img_url"`
 	LargeImgUrl  string         `db:"-" json:"large_img_url"`
@@ -1778,7 +1796,9 @@ func (obj *TimesOfDayV1) MakeObj(pParams interface{}) (Objecter, error) {
 	obj.Amount = int64(len(obj.ObjList))
 
 	for i := 0; i < len(obj.ObjList); i++ {
-		obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		// obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		perfumsCount, _ := GetPerfumsCount("timesOfDay", obj.ObjList[i].Uuid)
+		obj.ObjList[i].PerfumsCount = perfumsCount
 		obj.ObjList[i].Links = []LinkV1{
 			LinkV1{
 				Href:   baseUrl + "/timeofday/" + obj.ObjList[i].Uuid,
@@ -1793,8 +1813,8 @@ func (obj *TimesOfDayV1) MakeObj(pParams interface{}) (Objecter, error) {
 		}
 
 		if obj.ObjList[i].ImageId.Valid {
-			obj.ObjList[i].SmallImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/small"
-			obj.ObjList[i].LargeImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/large"
+			obj.ObjList[i].SmallImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/small"
+			obj.ObjList[i].LargeImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/large"
 		}
 	}
 
@@ -1890,7 +1910,7 @@ type TypeV1 struct {
 	Uuid         string         `db:"type_uuid" json:"id"`
 	Name         string         `db:"name" json:"name"`
 	ImageId      sql.NullString `db:"img_uuid" json:"-"`
-	PerfumsCount NullInt64      `db:"-" json:"perfums_count"`
+	PerfumsCount int64          `db:"-" json:"perfums_count"`
 	Links        []LinkV1       `db:"-" json:"links"`
 	SmallImgUrl  string         `db:"-" json:"small_img_url"`
 	LargeImgUrl  string         `db:"-" json:"large_img_url"`
@@ -1941,23 +1961,25 @@ func (obj *TypesV1) MakeObj(pParams interface{}) (Objecter, error) {
 	obj.Amount = int64(len(obj.ObjList))
 
 	for i := 0; i < len(obj.ObjList); i++ {
-		obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		// obj.ObjList[i].PerfumsCount = params.PerfumsNum
+		perfumsCount, _ := GetPerfumsCount("types", obj.ObjList[i].Uuid)
+		obj.ObjList[i].PerfumsCount = perfumsCount
 		obj.ObjList[i].Links = []LinkV1{
 			LinkV1{
-				Href:   baseUrl + "/types/" + obj.ObjList[i].Uuid,
+				Href:   baseUrl + "/type/" + obj.ObjList[i].Uuid,
 				Rel:    "TypeInfo",
 				Method: "GET",
 			},
 			LinkV1{
-				Href:   baseUrl + "/types/" + obj.ObjList[i].Uuid + "/perfums",
+				Href:   baseUrl + "/type/" + obj.ObjList[i].Uuid + "/perfums",
 				Rel:    "TypePerfums",
 				Method: "GET",
 			},
 		}
 
 		if obj.ObjList[i].ImageId.Valid {
-			obj.ObjList[i].SmallImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/small"
-			obj.ObjList[i].LargeImgUrl = baseUrl + "/images/" + obj.ObjList[i].ImageId.String + "/large"
+			obj.ObjList[i].SmallImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/small"
+			obj.ObjList[i].LargeImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/large"
 		}
 	}
 
@@ -2048,23 +2070,23 @@ func (obj *TypesV1) Json(w http.ResponseWriter, status int) error {
 	return render.JSON(w, status, obj)
 }
 
-type SearchResultV1 struct {
+type PerfumsSearchResultV1 struct {
 	Links  []LinkV1 `json:"links"`
 	Total  int64    `json:"total"`
 	Offset int64    `json:"offset"`
 	Amount int64    `json:"amount"`
 }
 
-func NewSearchResultFactory(version string) Objecter {
+func NewPerfumsSearchResultFactory(version string) Objecter {
 	switch version {
 	case "v1":
-		return &SearchResultV1{Links: make([]LinkV1, 0)}
+		return &PerfumsSearchResultV1{Links: make([]LinkV1, 0)}
 	}
 
 	return nil
 }
 
-func (obj *SearchResultV1) MakeObj(pParams interface{}) (Objecter, error) {
+func (obj *PerfumsSearchResultV1) MakeObj(pParams interface{}) (Objecter, error) {
 	if pParams == nil {
 		return nil, errors.New("invalid args")
 	}
@@ -2093,7 +2115,7 @@ func (obj *SearchResultV1) MakeObj(pParams interface{}) (Objecter, error) {
 	for _, result := range results {
 		obj.Links = append(obj.Links,
 			LinkV1{
-				Href:   baseUrl + "/perfums/" + result,
+				Href:   baseUrl + "/perfum/" + result,
 				Rel:    "PerfumInfo",
 				Method: "GET",
 			},
@@ -2103,11 +2125,11 @@ func (obj *SearchResultV1) MakeObj(pParams interface{}) (Objecter, error) {
 	return obj, nil
 }
 
-func (obj *SearchResultV1) MakeExtraObj(params *MakeObjParams, uids []string) (Objecter, error) {
+func (obj *PerfumsSearchResultV1) MakeExtraObj(params *MakeObjParams, uids []string) (Objecter, error) {
 	return obj, nil
 }
 
-func (obj *SearchResultV1) Count(pParams interface{}) (int64, error) {
+func (obj *PerfumsSearchResultV1) Count(pParams interface{}) (int64, error) {
 	if pParams == nil {
 		return 0, errors.New("invalid args")
 	}
@@ -2132,11 +2154,11 @@ func (obj *SearchResultV1) Count(pParams interface{}) (int64, error) {
 	return count, nil
 }
 
-func (obj *SearchResultV1) ExtraCount(uids []string) (int64, error) {
+func (obj *PerfumsSearchResultV1) ExtraCount(uids []string) (int64, error) {
 	return 0, nil
 }
 
-func (obj *SearchResultV1) Json(w http.ResponseWriter, status int) error {
+func (obj *PerfumsSearchResultV1) Json(w http.ResponseWriter, status int) error {
 	render := render.New()
 	return render.JSON(w, status, obj)
 }
@@ -2153,9 +2175,9 @@ type LoginReq struct {
 
 // LoginResp represents an authenticated response.
 type LoginResp struct {
-	Tok     oauth2.Token `json:"token"`
-	GplusId string       `json:"gplus_id"`
-	Links   []LinkV1     `json:"links"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	UserId       string `json:"user_id"`
 }
 
 // UserResp ...
@@ -2166,13 +2188,445 @@ type UserResp struct {
 	Links     []LinkV1 `json:"links"`
 }
 
-// ValidatedToken ...
-type ValidatedTokenData struct {
-	Azp        string `json:"azp"`
-	Aud        string `json:"aud"`
-	Sub        string `json:"sub"`
-	Scope      string `json:"scope"`
-	Exp        string `json:"exp"`
-	ExpiresIn  string `json:"expires_in"`
-	AccessType string `json:"access_type"`
+// IdTokenClaims ...
+type IdTokenClaims struct {
+	Iss    string  `json:"iss"`
+	Sub    string  `json:"sub"`
+	Aud    string  `json:"aud"`
+	Iat    float64 `json:"iat"`
+	Exp    float64 `json:"exp"`
+	UserId string  `json:"user_id"`
+}
+
+//BrandsSearchResultV1
+type BrandsSearchResultV1 struct {
+	ObjList []BrandV1 `db:"-" json:"brands_list"`
+	Total   int64     `json:"total"`
+	Offset  int64     `json:"offset"`
+	Amount  int64     `json:"amount"`
+}
+
+func NewBrandsSearchResultFactory(version string) Objecter {
+	switch version {
+	case "v1":
+		return &BrandsSearchResultV1{ObjList: make([]BrandV1, 0)}
+	}
+
+	return nil
+}
+
+func (obj *BrandsSearchResultV1) MakeObj(pParams interface{}) (Objecter, error) {
+	if pParams == nil {
+		return nil, errors.New("invalid args")
+	}
+
+	params := pParams.(*SearchParams)
+
+	search := NewSearchQueryTemplateParams()
+	if err := search.ParseSearchParams(params); err != nil {
+		return nil, err
+	}
+	if search.BrandUid == "" && search.Brand == "" {
+		// return empty object
+		return obj, nil
+	}
+	search.Order = "brands." + search.BrandsName
+	query := bytes.NewBufferString("")
+	if err := tmpl.ExecuteTemplate(query, "brands_search", &search); err != nil {
+		return nil, err
+	}
+
+	fmt.Println("================================= Query begin =======================================")
+	fmt.Println(query.String())
+	fmt.Println("================================= Query end =========================================")
+
+	if _, err = dbmap.Select(&obj.ObjList, query.String()); err != nil {
+		return nil, err
+	}
+
+	obj.Total = params.Total
+	obj.Offset = params.Base.Offset.Int64
+	obj.Amount = int64(len(obj.ObjList))
+
+	for i := 0; i < len(obj.ObjList); i++ {
+		obj.ObjList[i].PerfumsCount, _ = GetPerfumsCount("brands", obj.ObjList[i].Uuid)
+		obj.ObjList[i].Links = []LinkV1{
+			LinkV1{
+				Href:   baseUrl + "/brand/" + obj.ObjList[i].Uuid,
+				Rel:    "BrandInfo",
+				Method: "GET",
+			},
+			LinkV1{
+				Href:   baseUrl + "/brand/" + obj.ObjList[i].Uuid + "/perfums",
+				Rel:    "BrandPerfums",
+				Method: "GET",
+			},
+		}
+
+		if obj.ObjList[i].ImageId.Valid {
+			obj.ObjList[i].SmallImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/small"
+			obj.ObjList[i].LargeImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/large"
+		}
+	}
+
+	return obj, nil
+}
+
+func (obj *BrandsSearchResultV1) MakeExtraObj(params *MakeObjParams, uids []string) (Objecter, error) {
+	return obj, nil
+}
+
+func (obj *BrandsSearchResultV1) Count(pParams interface{}) (int64, error) {
+	if pParams == nil {
+		return 0, errors.New("invalid args")
+	}
+
+	params := pParams.(*SearchParams)
+
+	search := NewSearchQueryTemplateParams()
+	if err := search.ParseSearchParams(params); err != nil {
+		return 0, err
+	}
+
+	query := bytes.NewBufferString("")
+	if err := tmpl.ExecuteTemplate(query, "brands_search_count", &search); err != nil {
+		return 0, err
+	}
+
+	count, err := dbmap.SelectInt(query.String())
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (obj *BrandsSearchResultV1) ExtraCount(uids []string) (int64, error) {
+	return 0, nil
+}
+
+func (obj *BrandsSearchResultV1) Json(w http.ResponseWriter, status int) error {
+	render := render.New()
+	return render.JSON(w, status, obj)
+}
+
+//ComponentsSearchResultV1
+type ComponentsSearchResultV1 struct {
+	ObjList []ComponentV1 `db:"-" json:"components"`
+	Total   int64         `db:"-" json:"total"`
+	Offset  int64         `db:"-" json:"offset"`
+	Amount  int64         `db:"-" json:"amount"`
+}
+
+func NewComponentsSearchResultFactory(version string) Objecter {
+	switch version {
+	case "v1":
+		return &ComponentsSearchResultV1{ObjList: make([]ComponentV1, 0)}
+	}
+
+	return nil
+}
+
+func (obj *ComponentsSearchResultV1) MakeObj(pParams interface{}) (Objecter, error) {
+	if pParams == nil {
+		return nil, errors.New("invalid args")
+	}
+
+	params := pParams.(*SearchParams)
+
+	search := NewSearchQueryTemplateParams()
+	if err := search.ParseSearchParams(params); err != nil {
+		return nil, err
+	}
+	if search.ComponentUid == "" && search.Component == "" {
+		// return empty object
+		return obj, nil
+	}
+	search.Order = "components." + search.ComponentsName
+	query := bytes.NewBufferString("")
+	if err := tmpl.ExecuteTemplate(query, "components_search", &search); err != nil {
+		return nil, err
+	}
+	if _, err = dbmap.Select(&obj.ObjList, query.String()); err != nil {
+		return nil, err
+	}
+
+	obj.Total = params.Total
+	obj.Offset = params.Base.Offset.Int64
+	obj.Amount = int64(len(obj.ObjList))
+
+	for i := 0; i < len(obj.ObjList); i++ {
+		obj.ObjList[i].PerfumsCount, _ = GetPerfumsCount("components", obj.ObjList[i].Uuid)
+		obj.ObjList[i].Links = []LinkV1{
+			LinkV1{
+				Href:   baseUrl + "/component/" + obj.ObjList[i].Uuid,
+				Rel:    "ComponentInfo",
+				Method: "GET",
+			},
+			LinkV1{
+				Href:   baseUrl + "/component/" + obj.ObjList[i].Uuid + "/perfums",
+				Rel:    "ComponentPerfums",
+				Method: "GET",
+			},
+		}
+
+		if obj.ObjList[i].ImageId.Valid {
+			obj.ObjList[i].SmallImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/small"
+			obj.ObjList[i].LargeImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/large"
+		}
+	}
+
+	return obj, nil
+}
+
+func (obj *ComponentsSearchResultV1) MakeExtraObj(params *MakeObjParams, uids []string) (Objecter, error) {
+	return obj, nil
+}
+
+func (obj *ComponentsSearchResultV1) Count(pParams interface{}) (int64, error) {
+	if pParams == nil {
+		return 0, errors.New("invalid args")
+	}
+
+	params := pParams.(*SearchParams)
+
+	search := NewSearchQueryTemplateParams()
+	if err := search.ParseSearchParams(params); err != nil {
+		return 0, err
+	}
+
+	query := bytes.NewBufferString("")
+	if err := tmpl.ExecuteTemplate(query, "components_search_count", &search); err != nil {
+		return 0, err
+	}
+
+	count, err := dbmap.SelectInt(query.String())
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (obj *ComponentsSearchResultV1) ExtraCount(uids []string) (int64, error) {
+	return 0, nil
+}
+
+func (obj *ComponentsSearchResultV1) Json(w http.ResponseWriter, status int) error {
+	render := render.New()
+	return render.JSON(w, status, obj)
+}
+
+// CountriesSearchResultV1
+type CountriesSearchResultV1 struct {
+	ObjList []CountryV1 `db:"-" json:"countries_list"`
+	Total   int64       `db:"-" json:"total"`
+	Offset  int64       `db:"-" json:"offset"`
+	Amount  int64       `db:"-" json:"amount"`
+}
+
+func NewCountriesSearchResultFactory(version string) Objecter {
+	switch version {
+	case "v1":
+		return &CountriesSearchResultV1{ObjList: make([]CountryV1, 0)}
+	}
+
+	return nil
+}
+
+func (obj *CountriesSearchResultV1) MakeObj(pParams interface{}) (Objecter, error) {
+	if pParams == nil {
+		return nil, errors.New("invalid args")
+	}
+
+	params := pParams.(*SearchParams)
+
+	search := NewSearchQueryTemplateParams()
+	if err := search.ParseSearchParams(params); err != nil {
+		return nil, err
+	}
+	if search.CountryUid == "" && search.Country == "" {
+		// return empty object
+		return obj, nil
+	}
+	search.Order = "countries." + search.CountriesName
+	query := bytes.NewBufferString("")
+	if err := tmpl.ExecuteTemplate(query, "countries_search", &search); err != nil {
+		return nil, err
+	}
+	if _, err = dbmap.Select(&obj.ObjList, query.String()); err != nil {
+		return nil, err
+	}
+
+	obj.Total = params.Total
+	obj.Offset = params.Base.Offset.Int64
+	obj.Amount = int64(len(obj.ObjList))
+
+	for i := 0; i < len(obj.ObjList); i++ {
+		obj.ObjList[i].PerfumsCount, _ = GetPerfumsCount("countries", obj.ObjList[i].Uuid)
+		obj.ObjList[i].Links = []LinkV1{
+			LinkV1{
+				Href:   baseUrl + "/country/" + obj.ObjList[i].Uuid,
+				Rel:    "CountryInfo",
+				Method: "GET",
+			},
+			LinkV1{
+				Href:   baseUrl + "/country/" + obj.ObjList[i].Uuid + "/perfums",
+				Rel:    "CountryPerfums",
+				Method: "GET",
+			},
+		}
+
+		if obj.ObjList[i].ImageId.Valid {
+			obj.ObjList[i].SmallImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/small"
+			obj.ObjList[i].LargeImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/large"
+		}
+	}
+
+	return obj, nil
+}
+
+func (obj *CountriesSearchResultV1) MakeExtraObj(params *MakeObjParams, uids []string) (Objecter, error) {
+	return obj, nil
+}
+
+func (obj *CountriesSearchResultV1) Count(pParams interface{}) (int64, error) {
+	if pParams == nil {
+		return 0, errors.New("invalid args")
+	}
+
+	params := pParams.(*SearchParams)
+
+	search := NewSearchQueryTemplateParams()
+	if err := search.ParseSearchParams(params); err != nil {
+		return 0, err
+	}
+
+	query := bytes.NewBufferString("")
+	if err := tmpl.ExecuteTemplate(query, "countries_search_count", &search); err != nil {
+		return 0, err
+	}
+
+	count, err := dbmap.SelectInt(query.String())
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (obj *CountriesSearchResultV1) ExtraCount(uids []string) (int64, error) {
+	return 0, nil
+}
+
+func (obj *CountriesSearchResultV1) Json(w http.ResponseWriter, status int) error {
+	render := render.New()
+	return render.JSON(w, status, obj)
+}
+
+// GroupsSearchResultV1
+type GroupsSearchResultV1 struct {
+	ObjList []GroupV1 `db:"-" json:"groups_list"`
+	Total   int64     `db:"-" json:"total"`
+	Offset  int64     `db:"-" json:"offset"`
+	Amount  int64     `db:"-" json:"amount"`
+}
+
+func NewGroupsSearchResultFactory(version string) Objecter {
+	switch version {
+	case "v1":
+		return &GroupsSearchResultV1{ObjList: make([]GroupV1, 0)}
+	}
+
+	return nil
+}
+
+func (obj *GroupsSearchResultV1) MakeObj(pParams interface{}) (Objecter, error) {
+	if pParams == nil {
+		return nil, errors.New("invalid args")
+	}
+
+	params := pParams.(*SearchParams)
+
+	search := NewSearchQueryTemplateParams()
+	if err := search.ParseSearchParams(params); err != nil {
+		return nil, err
+	}
+	if search.GroupUid == "" && search.Group == "" {
+		// return empty object
+		return obj, nil
+	}
+	search.Order = "groups." + search.GroupsName
+	query := bytes.NewBufferString("")
+	if err := tmpl.ExecuteTemplate(query, "groups_search", &search); err != nil {
+		return nil, err
+	}
+	if _, err = dbmap.Select(&obj.ObjList, query.String()); err != nil {
+		return nil, err
+	}
+
+	obj.Total = params.Total
+	obj.Offset = params.Base.Offset.Int64
+	obj.Amount = int64(len(obj.ObjList))
+
+	for i := 0; i < len(obj.ObjList); i++ {
+		obj.ObjList[i].PerfumsCount, _ = GetPerfumsCount("groups", obj.ObjList[i].Uuid)
+		obj.ObjList[i].Links = []LinkV1{
+			LinkV1{
+				Href:   baseUrl + "/group/" + obj.ObjList[i].Uuid,
+				Rel:    "GroupInfo",
+				Method: "GET",
+			},
+			LinkV1{
+				Href:   baseUrl + "/group/" + obj.ObjList[i].Uuid + "/perfums",
+				Rel:    "GroupPerfums",
+				Method: "GET",
+			},
+		}
+
+		if obj.ObjList[i].ImageId.Valid {
+			obj.ObjList[i].SmallImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/small"
+			obj.ObjList[i].LargeImgUrl = baseUrl + "/image/" + obj.ObjList[i].ImageId.String + "/large"
+		}
+	}
+
+	return obj, nil
+}
+
+func (obj *GroupsSearchResultV1) MakeExtraObj(params *MakeObjParams, uids []string) (Objecter, error) {
+	return obj, nil
+}
+
+func (obj *GroupsSearchResultV1) Count(pParams interface{}) (int64, error) {
+	if pParams == nil {
+		return 0, errors.New("invalid args")
+	}
+
+	params := pParams.(*SearchParams)
+
+	search := NewSearchQueryTemplateParams()
+	if err := search.ParseSearchParams(params); err != nil {
+		return 0, err
+	}
+
+	query := bytes.NewBufferString("")
+	if err := tmpl.ExecuteTemplate(query, "groups_search_count", &search); err != nil {
+		return 0, err
+	}
+
+	count, err := dbmap.SelectInt(query.String())
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (obj *GroupsSearchResultV1) ExtraCount(uids []string) (int64, error) {
+	return 0, nil
+}
+
+func (obj *GroupsSearchResultV1) Json(w http.ResponseWriter, status int) error {
+	render := render.New()
+	return render.JSON(w, status, obj)
 }

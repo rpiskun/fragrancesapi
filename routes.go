@@ -15,65 +15,72 @@ type Route struct {
 // Routes ...
 type Routes []Route
 
-// validateByGoogle. Path prefix: /users
-var validateByGoogle = Routes{
+// Unauthorized. Path prefix: /
+// Handle without middleware
+var publicRoutes = Routes{
+	Route{
+		"Login",
+		"POST",
+		"/login",
+		LoginEndpoint,
+	},
+	Route{
+		"Token",
+		"POST",
+		"/token",
+		TokenEndpoint,
+	},
+}
+
+var privateRoutes = Routes{
 	Route{
 		"GetUser",
 		"GET",
-		"/{userId}",
+		"/user/{userId}",
 		GetUserEndpoint,
-	},
-	Route{
-		"CreateUser",
-		"POST",
-		"/{userId}",
-		CreateUserEndpoint,
-	},
-	Route{
-		"UpdateUser",
-		"PUT",
-		"/{userId}",
-		UpdateUserEndpoint,
 	},
 	Route{
 		"DeleteUser",
 		"DELETE",
-		"/{userId}",
+		"/user/{userId}",
 		DeleteUserEndpoint,
 	},
 	Route{
 		"Logout",
-		"GET",
-		"/{userId}/logout",
+		"PUT",
+		"/user/{userId}/logout",
 		LogoutEndpoint,
 	},
+	// Route{
+	// 	"RefreshToken",
+	// 	"GET",
+	// 	"/users/{userId}/refresh",
+	// 	RefreshTokenEndpoint,
+	// },
 	Route{
 		"GetUserFavorites",
 		"GET",
-		"/{userId}/favorites",
+		"/user/{userId}/favorites",
 		GetUserFavoritesEndpoint,
 	},
 	Route{
 		"CreateUserFavorites",
 		"POST",
-		"/{userId}/favorites",
+		"/user/{userId}/favorites",
 		CreateUserFavoritesEndpoint,
 	},
 	Route{
 		"UpdateUserFavorites",
 		"PUT",
-		"/{userId}/favorites",
+		"/user/{userId}/favorites",
 		UpdateUserFavoritesEndpoint,
 	},
 	Route{
 		"DeleteUserFavorites",
 		"DELETE",
-		"/{userId}/favorites",
+		"/user/{userId}/favorites",
 		DeleteUserFavoritesEndpoint,
 	},
-}
-
-var validateByDatabase = Routes{
 	Route{
 		"GetBrands",
 		"GET",
@@ -81,15 +88,21 @@ var validateByDatabase = Routes{
 		GetBrandsEndpoint,
 	},
 	Route{
+		"GetBrandsFind",
+		"GET",
+		"/brands/find",
+		GetBrandsFindEndpoint,
+	},
+	Route{
 		"GetBrand",
 		"GET",
-		"/brands/{brandId}",
+		"/brand/{brandId}",
 		GetBrandEndpoint,
 	},
 	Route{
 		"GetPerfumsByBrand",
 		"GET",
-		"/brands/{brandId}/perfums",
+		"/brand/{brandId}/perfums",
 		GetBrandPerfumsEndpoint,
 	},
 	Route{
@@ -99,15 +112,21 @@ var validateByDatabase = Routes{
 		GetComponentsEndpoint,
 	},
 	Route{
+		"GetComponentsFind",
+		"GET",
+		"/components/find",
+		GetComponentsFindEndpoint,
+	},
+	Route{
 		"GetComponent",
 		"GET",
-		"/components/{componentId}",
+		"/component/{componentId}",
 		GetComponentEndpoint,
 	},
 	Route{
 		"GetPerfumsByComponent",
 		"GET",
-		"/components/{componentId}/perfums",
+		"/component/{componentId}/perfums",
 		GetComponentPerfumsEndpoint,
 	},
 	Route{
@@ -117,21 +136,27 @@ var validateByDatabase = Routes{
 		GetCountriesEndpoint,
 	},
 	Route{
+		"GetCountriesFind",
+		"GET",
+		"/countries/find",
+		GetCountriesFindEndpoint,
+	},
+	Route{
 		"GetCountry",
 		"GET",
-		"/countries/{countryId}",
+		"/country/{countryId}",
 		GetCountryEndpoint,
 	},
 	Route{
 		"GetPerfumsByCountry",
 		"GET",
-		"/countries/{countryId}/perfums",
+		"/country/{countryId}/perfums",
 		GetCountryPerfumsEndpoint,
 	},
 	Route{
 		"GetGenders",
 		"GET",
-		"/gender",
+		"/genders",
 		GetGendersEndpoint,
 	},
 	Route{
@@ -153,15 +178,21 @@ var validateByDatabase = Routes{
 		GetGroupsEndpoint,
 	},
 	Route{
+		"GetGroupsFind",
+		"GET",
+		"/groups/find",
+		GetGroupsFindEndpoint,
+	},
+	Route{
 		"GetGroup",
 		"GET",
-		"/groups/{groupId}",
+		"/group/{groupId}",
 		GetGroupEndpoint,
 	},
 	Route{
 		"GetPerfumsByGroup",
 		"GET",
-		"/groups/{groupId}/perfums",
+		"/group/{groupId}/perfums",
 		GetGroupPerfumsEndpoint,
 	},
 	Route{
@@ -173,13 +204,13 @@ var validateByDatabase = Routes{
 	Route{
 		"GetNote",
 		"GET",
-		"/notes/{noteId}",
+		"/note/{noteId}",
 		GetNoteEndpoint,
 	},
 	Route{
 		"GetPerfumsByNote",
 		"GET",
-		"/notes/{noteId}/perfums",
+		"/note/{noteId}/perfums",
 		GetNotePerfumsEndpoint,
 	},
 	Route{
@@ -191,19 +222,19 @@ var validateByDatabase = Routes{
 	Route{
 		"GetSeason",
 		"GET",
-		"/seasons/{seasonId}",
+		"/season/{seasonId}",
 		GetSeasonEndpoint,
 	},
 	Route{
 		"GetPerfumsBySeason",
 		"GET",
-		"/seasons/{seasonId}/perfums",
+		"/season/{seasonId}/perfums",
 		GetSeasonPerfumsEndpoint,
 	},
 	Route{
 		"GetTimesOfDay",
 		"GET",
-		"/timeofday",
+		"/timesofday",
 		GetTimesOfDayEndpoint,
 	},
 	Route{
@@ -227,13 +258,13 @@ var validateByDatabase = Routes{
 	Route{
 		"GetType",
 		"GET",
-		"/types/{typeId}",
+		"/type/{typeId}",
 		GetTypeEndpoint,
 	},
 	Route{
 		"GetPerfumsByType",
 		"GET",
-		"/types/{typeId}/perfums",
+		"/type/{typeId}/perfums",
 		GetTypePerfumsEndpoint,
 	},
 	Route{
@@ -246,30 +277,24 @@ var validateByDatabase = Routes{
 		"GetPerfumDetails",
 		"GET",
 		"/perfums/find",
-		GetPerfumFindEndpoint,
+		GetPerfumsFindEndpoint,
 	},
 	Route{
 		"GetPerfumDetails",
 		"GET",
-		"/perfums/{perfumId}",
+		"/perfum/{perfumId}",
 		GetPerfumDetailedInfoEndpoint,
 	},
 	Route{
 		"GetImagesSmall",
 		"GET",
-		"/images/{imageUuid}/small",
+		"/image/{imageId}/small",
 		GetSmallImageEndpoint,
 	},
 	Route{
 		"GetImagesLarge",
 		"GET",
-		"/images/{imageUuid}/large",
+		"/image/{imageId}/large",
 		GetLargeImageEndpoint,
-	},
-	Route{
-		"Test",
-		"GET",
-		"/test",
-		TestEndpoint,
 	},
 }

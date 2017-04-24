@@ -3,15 +3,17 @@ package main
 import (
 	"database/sql"
 	"errors"
-	_ "github.com/lib/pq"
-	"gopkg.in/gorp.v1"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"sync"
 	"text/template"
 	"time"
+
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
+	"gopkg.in/gorp.v1"
 )
 
 var (
@@ -60,9 +62,63 @@ var (
 		},
 	}
 
-	dbmap *gorp.DbMap
-	regex *regexp.Regexp
+	dbmap           *gorp.DbMap
+	regex           *regexp.Regexp
+	PfumsCountCache = map[string]PfumsCountCacheItem{
+		"brands": PfumsCountCacheItem{
+			getItemsDbQuery: "SELECT brands.id AS id, brands.uuid AS uid FROM brands",
+			getCountDbQuery: "SELECT COUNT(*) FROM parfum_info WHERE brand_id=$1",
+			count:           make(map[string]int64),
+		},
+		"components": PfumsCountCacheItem{
+			getItemsDbQuery: "SELECT components.id AS id, components.uuid AS uid FROM components",
+			getCountDbQuery: "SELECT COUNT(DISTINCT parfum_info_id) FROM parfums WHERE component_id=$1",
+			count:           make(map[string]int64),
+		},
+		"countries": PfumsCountCacheItem{
+			getItemsDbQuery: "SELECT countries.id AS id, countries.uuid AS uid FROM countries",
+			getCountDbQuery: "SELECT COUNT(*) FROM parfum_info WHERE country_id=$1",
+			count:           make(map[string]int64),
+		},
+		"genders": PfumsCountCacheItem{
+			getItemsDbQuery: "SELECT gender.id AS id, gender.uuid AS uid FROM gender",
+			getCountDbQuery: "SELECT COUNT(*) FROM parfum_info WHERE gender_id=$1",
+			count:           make(map[string]int64),
+		},
+		"groups": PfumsCountCacheItem{
+			getItemsDbQuery: "SELECT groups.id AS id, groups.uuid AS uid FROM groups",
+			getCountDbQuery: "SELECT COUNT(*) FROM parfum_info WHERE group_id=$1",
+			count:           make(map[string]int64),
+		},
+		"notes": PfumsCountCacheItem{
+			getItemsDbQuery: "SELECT notes.id AS id, notes.uuid AS uid FROM notes",
+			getCountDbQuery: "SELECT COUNT(DISTINCT parfum_info_id) FROM parfums WHERE note_id=$1",
+			count:           make(map[string]int64),
+		},
+		"seasons": PfumsCountCacheItem{
+			getItemsDbQuery: "SELECT seasons.id AS id, seasons.uuid AS uid FROM seasons",
+			getCountDbQuery: "SELECT COUNT(*) FROM parfum_info WHERE season_id=$1",
+			count:           make(map[string]int64),
+		},
+		"timesOfDay": PfumsCountCacheItem{
+			getItemsDbQuery: "SELECT times_of_day.id AS id, times_of_day.uuid AS uid FROM times_of_day",
+			getCountDbQuery: "SELECT COUNT(*) FROM parfum_info WHERE tsod_id=$1",
+			count:           make(map[string]int64),
+		},
+		"types": PfumsCountCacheItem{
+			getItemsDbQuery: "SELECT types.id AS id, types.uuid AS uid FROM types",
+			getCountDbQuery: "SELECT COUNT(*) FROM parfum_info WHERE type_id=$1",
+			count:           make(map[string]int64),
+		},
+	}
 )
+
+type PfumsCountCacheItem struct {
+	getItemsDbQuery string
+	getCountDbQuery string
+	mutex           sync.RWMutex
+	count           map[string]int64
+}
 
 type LangField struct {
 	BrandsName         string
@@ -176,7 +232,7 @@ func (sp *SearchQueryTemplateParams) ParseSearchParams(params *SearchParams) err
 	}
 
 	if params.Name.Valid && len(params.Name.String) > 0 {
-		sp.Name = addSubstringToQuery(params.Name.String, "parfum_info."+sp.LangField.PerfumInfo)
+		sp.Name = addSubstringToQuery(params.Name.String, "parfum_info."+sp.LangField.PerfumInfo, params.CompareMode, params.CaseSensitive)
 	}
 
 	if params.YearFrom.Valid && len(params.YearFrom.Int64) > 0 {
@@ -192,7 +248,7 @@ func (sp *SearchQueryTemplateParams) ParseSearchParams(params *SearchParams) err
 	}
 
 	if params.Desc.Valid && len(params.Desc.String) > 0 {
-		sp.Desc = addSubstringToQuery(params.Desc.String, "descriptions."+sp.LangField.PerfumsDescription)
+		sp.Desc = addSubstringToQuery(params.Desc.String, "descriptions."+sp.LangField.PerfumsDescription, params.CompareMode, params.CaseSensitive)
 	}
 
 	if params.BrandUid.Valid && len(params.BrandUid.String) > 0 {
@@ -200,7 +256,7 @@ func (sp *SearchQueryTemplateParams) ParseSearchParams(params *SearchParams) err
 	}
 
 	if params.Brand.Valid && len(params.Brand.String) > 0 {
-		sp.Brand = addSubstringToQuery(params.Brand.String, "brands."+sp.LangField.BrandsName)
+		sp.Brand = addSubstringToQuery(params.Brand.String, "brands."+sp.LangField.BrandsName, params.CompareMode, params.CaseSensitive)
 	}
 
 	if params.GenderUid.Valid && len(params.GenderUid.String) > 0 {
@@ -208,7 +264,7 @@ func (sp *SearchQueryTemplateParams) ParseSearchParams(params *SearchParams) err
 	}
 
 	if params.Gender.Valid && len(params.Gender.String) > 0 {
-		sp.Gender = addSubstringToQuery(params.Gender.String, "gender."+sp.LangField.GenderName)
+		sp.Gender = addSubstringToQuery(params.Gender.String, "gender."+sp.LangField.GenderName, params.CompareMode, params.CaseSensitive)
 	}
 
 	if params.GroupUid.Valid && len(params.GroupUid.String) > 0 {
@@ -216,7 +272,7 @@ func (sp *SearchQueryTemplateParams) ParseSearchParams(params *SearchParams) err
 	}
 
 	if params.Group.Valid && len(params.Group.String) > 0 {
-		sp.Group = addSubstringToQuery(params.Group.String, "groups."+sp.LangField.GroupsName)
+		sp.Group = addSubstringToQuery(params.Group.String, "groups."+sp.LangField.GroupsName, params.CompareMode, params.CaseSensitive)
 	}
 
 	if params.CountryUid.Valid && len(params.CountryUid.String) > 0 {
@@ -224,7 +280,7 @@ func (sp *SearchQueryTemplateParams) ParseSearchParams(params *SearchParams) err
 	}
 
 	if params.Country.Valid && len(params.Country.String) > 0 {
-		sp.Country = addSubstringToQuery(params.Country.String, "countries."+sp.LangField.CountriesName)
+		sp.Country = addSubstringToQuery(params.Country.String, "countries."+sp.LangField.CountriesName, params.CompareMode, params.CaseSensitive)
 	}
 
 	if params.SeasonUid.Valid && len(params.SeasonUid.String) > 0 {
@@ -232,7 +288,7 @@ func (sp *SearchQueryTemplateParams) ParseSearchParams(params *SearchParams) err
 	}
 
 	if params.Season.Valid && len(params.Season.String) > 0 {
-		sp.Season = addSubstringToQuery(params.Season.String, "seasons."+sp.LangField.SeasonsName)
+		sp.Season = addSubstringToQuery(params.Season.String, "seasons."+sp.LangField.SeasonsName, params.CompareMode, params.CaseSensitive)
 	}
 
 	if params.TsodUid.Valid && len(params.TsodUid.String) > 0 {
@@ -240,7 +296,7 @@ func (sp *SearchQueryTemplateParams) ParseSearchParams(params *SearchParams) err
 	}
 
 	if params.Tsod.Valid && len(params.Tsod.String) > 0 {
-		sp.Tsod = addSubstringToQuery(params.Tsod.String, "times_of_day."+sp.LangField.TsodName)
+		sp.Tsod = addSubstringToQuery(params.Tsod.String, "times_of_day."+sp.LangField.TsodName, params.CompareMode, params.CaseSensitive)
 	}
 
 	if params.TypeUid.Valid && len(params.TypeUid.String) > 0 {
@@ -248,7 +304,7 @@ func (sp *SearchQueryTemplateParams) ParseSearchParams(params *SearchParams) err
 	}
 
 	if params.Type.Valid && len(params.Type.String) > 0 {
-		sp.Type = addSubstringToQuery(params.Type.String, "types."+sp.LangField.TypesName)
+		sp.Type = addSubstringToQuery(params.Type.String, "types."+sp.LangField.TypesName, params.CompareMode, params.CaseSensitive)
 	}
 
 	if params.PerfumUid.Valid && len(params.PerfumUid.String) > 0 {
@@ -260,7 +316,7 @@ func (sp *SearchQueryTemplateParams) ParseSearchParams(params *SearchParams) err
 	}
 
 	if params.Note.Valid && len(params.Note.String) > 0 {
-		sp.Note = addSubstringToQuery(params.Note.String, "notes."+sp.LangField.NotesName)
+		sp.Note = addSubstringToQuery(params.Note.String, "notes."+sp.LangField.NotesName, params.CompareMode, params.CaseSensitive)
 	}
 
 	if params.ComponentUid.Valid && len(params.ComponentUid.String) > 0 {
@@ -268,7 +324,7 @@ func (sp *SearchQueryTemplateParams) ParseSearchParams(params *SearchParams) err
 	}
 
 	if params.Component.Valid && len(params.Component.String) > 0 {
-		sp.Component = addSubstringToQuery(params.Component.String, "components."+sp.LangField.ComponentsName)
+		sp.Component = addSubstringToQuery(params.Component.String, "components."+sp.LangField.ComponentsName, params.CompareMode, params.CaseSensitive)
 	}
 
 	return nil
@@ -290,7 +346,7 @@ func addUidToQuery(slice []string, fieldId string) string {
 	return ret
 }
 
-func addSubstringToQuery(slice []string, fieldId string) string {
+func addSubstringToQuery(slice []string, fieldId string, cm, cs NullString) string {
 	ret := ""
 	if num := len(slice); num > 0 {
 		for i, value := range slice {
@@ -298,7 +354,26 @@ func addSubstringToQuery(slice []string, fieldId string) string {
 				if i > 0 {
 					ret += " OR "
 				}
-				ret += `LOWER(` + fieldId + `) LIKE (LOWER('%` + normalized + `%'))`
+
+				if !cs.Valid || cs.String != "y" {
+					ret += `LOWER`
+				}
+
+				ret += `(` + fieldId + `) LIKE `
+
+				if !cs.Valid || cs.String != "y" {
+					ret += `LOWER`
+				}
+
+				if cm.String == "st" { //strict
+					ret += `('` + normalized + `')`
+				} else if cm.String == "bw" { //begin with
+					ret += `('` + normalized + `%')`
+				} else if cm.String == "ew" { //end with
+					ret += `('%` + normalized + `')`
+				} else { //at any position in the string
+					ret += `('%` + normalized + `%')`
+				}
 			}
 		}
 	}
@@ -334,6 +409,7 @@ func addIntToQueryConditionLE(slice []int64, fieldId string) string {
 	return ret
 }
 
+// DBObjecter ...
 type DBObjecter interface {
 	GetRecords(params *BaseParams) ([]interface{}, error)
 	GetPerfumInfoWithUid(params *BaseParams, uuids []string) ([]interface{}, error)
@@ -343,11 +419,12 @@ type DBObjecter interface {
 
 // UserDB ...
 type UserDB struct {
-	GplusId     string `db:"gplus_id"`
-	AccessToken string `db:"access_token"`
-	ExpiresOn   int64  `db:"expires_on"`
-	CreatedAt   int64  `db:"created_at"`
-	UpdatedAt   int64  `db:"updated_at"`
+	UserId       string `db:"user_id"`
+	AccessToken  string `db:"access_token"`
+	RefreshToken string `db:"refresh_token"`
+	ExpiresAt    int64  `db:"expires_at"`
+	CreatedAt    int64  `db:"created_at"`
+	UpdatedAt    int64  `db:"updated_at"`
 }
 
 // ImagesDB ...
@@ -370,9 +447,10 @@ var tmpl *template.Template
 var whereIsUsed = false
 
 func init() {
+	_ = godotenv.Load("openshift.env")
 	dir := os.Getenv("OPENSHIFT_REPO_DIR")
 	if dir == "" {
-		log.Fatalln("Variable OPENSHIFT_REPO_DIR is not defined")
+		TraceFatal("Variable OPENSHIFT_REPO_DIR is not defined")
 		os.Exit(-1)
 	}
 
@@ -389,18 +467,18 @@ func init() {
 		},
 	).ParseFiles(templateFile))
 
-	regex = regexp.MustCompile(`(([\p{L}|\p{Nd}]+\s*[-|&]?\s*)+[\p{L}|\p{Nd}]+[']?([\p{L}|\p{Nd}]+\s*[-|&]?\s*)+[\p{L}|\p{Nd}]*)`)
+	regex = regexp.MustCompile(`(([\p{L}|\p{Nd}]+\s*[-|&]?\s*)+[\p{L}|\p{Nd}]+[']?([\p{L}|\p{Nd}]+\s*[-|&]?\s*)+[\p{L}|\p{Nd}]*)|([\p{L}|\p{Nd}]{1,2})`)
 }
 
 // InitDb ...
 func InitDb() *gorp.DbMap {
-	db, err := sql.Open("postgres", os.Getenv("OPENSHIFT_POSTGRESQL_DB_URL")+"/"+os.Getenv("FRAGRANCES_DB_NAME"))
+	db, err := sql.Open("postgres", os.Getenv("OPENSHIFT_POSTGRESQL_DB_URL")+"/"+os.Getenv("FRAGRANCES_DB_NAME")+"?sslmode=disable")
 	if err != nil {
-		log.Fatalln("sql.Open FAILED, Error: ", err)
+		TracePrintError(err)
 		os.Exit(-1)
 	}
 	dbmap = &gorp.DbMap{Db: db, Dialect: gorp.PostgresDialect{}}
-	dbmap.AddTableWithName(UserDB{}, "users").SetKeys(false, "GplusId")
+	dbmap.AddTableWithName(UserDB{}, "users").SetKeys(false, "UserId")
 	dbmap.AddTableWithName(BrandV1{}, "brands").SetKeys(false, "Id")
 	dbmap.AddTableWithName(ImageDB{}, "images").SetKeys(false, "Id")
 	dbmap.AddTableWithName(PerfumInfoV1{}, "parfum_info").SetKeys(false, "Id")
@@ -412,6 +490,22 @@ func InitDb() *gorp.DbMap {
 	dbmap.AddTableWithName(TimeOfDayV1{}, "times_of_day").SetKeys(false, "Id")
 	dbmap.AddTableWithName(TypeV1{}, "types").SetKeys(false, "Id")
 	dbmap.AddTableWithName(PerfumCompositionDBRecordV1{}, "parfums").SetKeys(false, "PerfumId")
+	// dbmap.TraceOn("[gorp]", log.New(os.Stdout, "fga:", log.Lmicroseconds))
+
+	go func() {
+		c := time.Tick(time.Duration(4) * time.Hour)
+		for _, pcci := range PfumsCountCache {
+			CachePerfumsCount(&pcci)
+		}
+
+		for _ = range c {
+			for _, pcci := range PfumsCountCache {
+				CachePerfumsCount(&pcci)
+				time.Sleep(time.Duration(10) * time.Second)
+			}
+		}
+	}()
+
 	return dbmap
 }
 
@@ -419,13 +513,15 @@ func GetDbMap() *gorp.DbMap {
 	return dbmap
 }
 
-// GetUserByGplusId ...
-func GetUserByGplusId(GplusId string) (user *UserDB, err error) {
-	if GplusId == "" {
+// GetUserByUserId ...
+func GetUserByUserId(UserId string) (user *UserDB, err error) {
+	if UserId == "" {
+		TracePrint("user == nil")
 		return nil, errors.New("bad arg")
 	}
-	obj, err := dbmap.Get(UserDB{}, GplusId)
+	obj, err := dbmap.Get(UserDB{}, UserId)
 	if err != nil {
+		TracePrintError(err)
 		return nil, err
 	}
 	if obj == nil {
@@ -442,48 +538,60 @@ func GetUserByAccessToken(tok string) (*UserDB, error) {
 	}
 	var user UserDB
 	if err := dbmap.SelectOne(&user, "SELECT * FROM users WHERE access_token=$1", tok); err != nil {
+		TracePrintError(err)
+		return nil, err
+	}
+	return &user, nil
+}
+
+// GetUserByRefreshToken ...
+func GetUserByRefreshToken(tok string) (*UserDB, error) {
+	if tok == "" {
+		return nil, errors.New("bad arg")
+	}
+	var user UserDB
+	if err := dbmap.SelectOne(&user, "SELECT * FROM users WHERE refresh_token=$1", tok); err != nil {
+		TracePrintError(err)
 		return nil, err
 	}
 	return &user, nil
 }
 
 // UserInsert ...
-func UserInsert(userId, accessToken, expiresOn string) (*UserDB, error) {
-	if accessToken == "" || userId == "" || expiresOn == "" {
+func UserInsert(userId, accessToken, refreshToken string, expiresAt int64) (*UserDB, error) {
+	if accessToken == "" || userId == "" {
 		return nil, errors.New("bad arg")
 	}
-	exp, err := strconv.ParseInt(expiresOn, 10, 64)
-	if err != nil {
-		return nil, err
-	}
+
 	now := time.Now()
 	newUser := &UserDB{
-		GplusId:     userId,
-		AccessToken: accessToken,
-		ExpiresOn:   exp,
-		CreatedAt:   now.Unix(),
-		UpdatedAt:   now.Unix(),
+		UserId:       userId,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresAt:    expiresAt,
+		CreatedAt:    now.Unix(),
+		UpdatedAt:    now.Unix(),
 	}
 	if err := dbmap.Insert(newUser); err != nil {
+		TracePrintError(err)
 		return nil, err
 	}
 	return newUser, nil
 }
 
 // Update ...
-func (u *UserDB) Update(accessToken, expiresOn string) (bool, error) {
-	if u.GplusId == "" || accessToken == "" || expiresOn == "" {
+func (u *UserDB) Update(accessToken, refreshToken string, expiresAt int64) (bool, error) {
+	if u.UserId == "" || accessToken == "" || refreshToken == "" {
 		return false, errors.New("bad arg")
 	}
-	exp, err := strconv.ParseInt(expiresOn, 10, 64)
-	if err != nil {
-		return false, err
-	}
+
 	u.AccessToken = accessToken
-	u.ExpiresOn = exp
+	u.RefreshToken = refreshToken
+	u.ExpiresAt = expiresAt
 	u.UpdatedAt = time.Now().Unix()
 	count, err := dbmap.Update(u)
 	if err != nil {
+		TracePrintError(err)
 		return false, err
 	} else if count == 0 {
 		return false, nil
@@ -493,11 +601,12 @@ func (u *UserDB) Update(accessToken, expiresOn string) (bool, error) {
 
 // Delete ...
 func (u *UserDB) Delete() (bool, error) {
-	if u.GplusId == "" {
+	if u.UserId == "" {
 		return false, errors.New("bad arg")
 	}
 	count, err := dbmap.Delete(u)
 	if err != nil {
+		TracePrintError(err)
 		return false, err
 	} else if count == 0 {
 		return false, nil
@@ -578,6 +687,7 @@ func setDbQueryBaseParams(params *BaseParams, dbParams *QueryTemplateParams) err
 func GetImageById(id int64) (*ImageDB, error) {
 	image := ImageDB{}
 	if err := dbmap.SelectOne(&image, "SELECT * FROM images WHERE id=$1", id); err != nil {
+		TracePrintError(err)
 		return nil, err
 	}
 	return &image, nil
@@ -587,7 +697,53 @@ func GetImageById(id int64) (*ImageDB, error) {
 func GetImageByUuid(uuid string) (*ImageDB, error) {
 	image := ImageDB{}
 	if err := dbmap.SelectOne(&image, "SELECT * FROM images WHERE uuid=$1", uuid); err != nil {
+		TracePrintError(err)
 		return nil, err
 	}
 	return &image, nil
+}
+
+func CachePerfumsCount(cacheItem *PfumsCountCacheItem) error {
+	type DbItem struct {
+		Id  string `db:"id"`
+		Uid string `db:"uid"`
+	}
+
+	var items []DbItem
+	if _, err := dbmap.Select(&items, cacheItem.getItemsDbQuery); err != nil {
+		return err
+	}
+
+	if len(items) > 0 {
+		temp := make(map[string]int64)
+		for _, b := range items {
+			count, err := dbmap.SelectInt(cacheItem.getCountDbQuery, b.Id)
+			if err != nil {
+				return err
+			}
+			temp[b.Uid] = count
+		}
+		if len(temp) > 0 {
+			cacheItem.mutex.Lock()
+			for k, v := range temp {
+				cacheItem.count[k] = v
+			}
+			cacheItem.mutex.Unlock()
+		}
+	}
+
+	return nil
+}
+
+func GetPerfumsCount(table, uid string) (int64, bool) {
+	cacheItem, found := PfumsCountCache[table]
+	if !found {
+		return 0, false
+	}
+
+	cacheItem.mutex.RLock()
+	value, found := cacheItem.count[uid]
+	cacheItem.mutex.RUnlock()
+
+	return value, found
 }
